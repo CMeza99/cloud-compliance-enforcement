@@ -1,0 +1,77 @@
+graph LR
+
+	se --> yaml
+	se --> chat
+	se--> charts
+	sec --> yaml
+	sec --> charts
+	managment --> charts
+	subgraph Users
+		se(Systems Engineer)
+		sec(Security Engineer)
+		managment(Managment)
+	end
+
+	git --> compile
+	subgraph UI
+		subgraph Policy-as-Code
+			yaml(fa:fa-file YAML) -.-> git(fa:fa-git Git)
+		end
+		subgraph Dashboards
+			charts(Datadog)
+		end
+		subgraph Notifications
+			chat(fa:fa-slack Slack)
+		end
+	end
+
+	c7n --create--> lambda
+	c7n --create--> ebcron
+	c7n --create--> ebcloudtrail
+	c7n --> azure
+	subgraph CI/CD
+		subgraph Pipeline
+			compile(Policy Compiler) -.-> c7n(Cloud Custodian)
+		end
+	end
+
+	lambda --> chat
+	cwmetrics --pull--> charts
+	azure --> charts
+	azure --> chat
+	subgraph Clouds
+
+		lambda -.-> s3
+		lambda -.-> cwmetrics
+		lambda -.-> cwlogs
+		ebcron -.trigger.-> lambda
+		ebcloudtrail -.trigger.-> lambda
+		subgraph Amazon
+			subgraph AWS Execute
+				lambda(Lambda)
+			end
+			subgraph AWS Archive
+				s3("S3")
+			end
+			subgraph AWS Data
+				cwmetrics(CloudWatch Metrics)
+				cwlogs(CloudWatch Logs)
+			end
+			subgraph AWS Events
+				ebcron(EventBridge Cron)
+				ebcloudtrail(EventBridge CloudTrail)
+			end
+		end
+
+		subgraph Azure
+		style Azure fill:#eee
+			azure(TBD)
+		end
+
+	end
+
+	classDef layer fill:#fdfdfd,stroke:#333,stroke-width:4px
+	classDef container fill:#ffe9ae,stroke:#333,stroke-width:2px
+	class Users,UI,CI/CD,Clouds layer
+	class Policy-as-Code,Notifications,Dashboards,Pipeline,Amazon,Azure container
+
