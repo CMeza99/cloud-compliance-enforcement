@@ -1,0 +1,24 @@
+%YAML 1.2
+---
+type: periodic
+schedule: "rate(1 day)"
+role: "arn:aws:iam::623766947228:role/ce-c7n-lambda"
+memory: 128
+execution-options:
+  # assume_role : "arn:aws:iam::623766947228:role/platform-probator"
+  log_group: "aws://ce/c7n/?region=us-east-1"
+  metrics: "aws://?region=us-east-1"
+  output_dir: "s3://c7n-test/v2020.04.02"
+  dryrun: true
+tags:
+  product_name: Cloud Custodian
+  project: 5325100 - System Engineers
+  name: &NAME Compliance Enforement
+  environment: ""
+  agileteam: SRE
+  wbs: ""
+  consolidated_segment: "Studio Entertainment"
+  application_name: *NAME
+  affiliate: *NAME
+  affiliate_id: ""
+  name_node_id: ""
