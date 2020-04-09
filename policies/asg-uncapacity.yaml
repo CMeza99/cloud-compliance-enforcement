@@ -1,0 +1,9 @@
+---
+policies:
+  - name: asg-undercapacity
+    resource: aws.asg
+    filters:
+      - capacity-delta
+#    action:
+#      - type: resize
+#        desired-size: "current"

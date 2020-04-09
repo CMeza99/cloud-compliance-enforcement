@@ -1,0 +1,17 @@
+---
+policies:
+  - name: rds-cluster-snapshots-2m
+    # https://confluence.platform.wds.io/display/SE/DB+Retention+Policy
+    resource: aws.rds-cluster-snapshot
+    filters:
+      - and:
+        - type: age
+          days: 60
+          op: gt
+        - not:
+          - type: value
+            key: "tag:custodian_skip"
+            op: regex
+            value: "(1|true)"
+    # actions:
+    #   - delete

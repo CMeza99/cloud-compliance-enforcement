@@ -1,0 +1,35 @@
+---
+policies:
+  - name: ec2-stopped-1y
+    resource: aws.ec2
+    description: |
+      Cloud Custodian Stopped Instances Audit
+    comments: |
+      Retrieve list of all instances that
+      - are stopped
+      - older than 1 year
+    filters:
+      - and:
+        - type: value
+          key: State.Name
+          value: stopped
+        - type: state-age
+          op: gt
+          days: 365
+        - not:  ## Added at the request of Carlos Meza (out of paranoia) for the shared-services account
+          - and:
+            - type: value
+              key: "tag:Name"
+              op: regex
+              value: "^.*jenkins.*$"
+            - type: image-age
+              days: 1460  # 4 years
+              op: lt
+        - not:
+          - type: value
+            key: "tag:custodian_skip"
+            op: regex
+            value: "(1|true)"
+    actions:
+      - type: terminate
+        force: true  ## Otherwise an exception thrown when attempting to remove when disableApiTermination is true

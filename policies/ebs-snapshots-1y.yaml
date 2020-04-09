@@ -1,0 +1,32 @@
+---
+policies:
+  - name: ebs-snapshots-1y
+    resource: aws.ebs-snapshot
+    filters:
+      - and:
+        - skip-ami-snapshots
+        - type: unused
+          value: true
+        - type: age
+          days: 365
+          op: ge
+        - not:
+          - type: value
+            key: "tag:custodian_skip"
+            op: regex
+            value: "(1|true)"
+    actions:
+      - delete
+#       - type: put-metric
+#         key: SnapshotId
+#         namespace: "c7n: EBS Old Snapshots"
+#         metric_name: Count
+#         op: count
+#         units: Count
+#       - type: put-metric
+#         key: VolumeSize
+#         namespace: "c7n: EBS Old Snapshots"
+#         metric_name: Size
+#         op: sum
+#         units: Gigabytes
+

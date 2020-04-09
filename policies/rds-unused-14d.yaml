@@ -1,0 +1,28 @@
+---
+policies:
+  - name: rds-unused-14d
+    resource: aws.rds
+    description: |
+      Take the average number of connections over 28 days and delete
+      any unused databases that have already been marked for delete
+    filters:
+      - and:
+        - type: value
+          value_type: age
+          key: InstanceCreateTime
+          value: 28
+          op: gte
+        - type: metrics
+          name: DatabaseConnections
+          days: 14
+          value: 0
+          op: equal
+        - not:
+            - type: value
+              key: "tag:custodian_skip"
+              op: regex
+              value: "(1|true)"
+    # actions:
+    #   - type: delete
+    #     skip-snapshot: true
+

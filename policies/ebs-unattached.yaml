@@ -1,0 +1,52 @@
+---
+policies:
+  - name: ebs-unattached
+    resource: aws.ebs
+    comments: |
+      Mark any unattached EBS volumes for deletion in 30 days.
+      Volumes set to not delete on instance termination do have
+      valid use cases as data drives, but 99% of the time they
+      appear to be just garbage creation.
+    filters:
+      - and:
+        - Attachments: []
+        - not:
+          - type: value
+            key: "tag:custodian_skip"
+            op: regex
+            value: "(1|true)"
+      # - "tag:maid_status": absent
+    # Unattached volumes should be snapshoted and deleted to save money.
+    # But do not delete before snapshot is created.
+    #  - type: fault-tolerant
+    #    tolerant: True
+#    actions:
+#      - delete
+
+    # actions:
+    #   - type: mark-for-op
+    #     op: delete
+    #     days: 30
+
+  # - name: ebs-unmark-attached-deletion
+  #   resource: ebs
+  #   comments: |
+  #     Unmark any attached EBS volumes that were scheduled for deletion
+  #     if they are currently attached
+  #   filters:
+  #     - type: value
+  #       key: "Attachments[0].Device"
+  #       value: not-null
+  #     - "tag:maid_status": not-null
+  #   actions:
+  #     - unmark
+
+  # - name: ebs-delete-marked
+  #   resource: ebs
+  #   comments: |
+  #     Delete any attached EBS volumes that were scheduled for deletion
+  #   filters:
+  #     - type: marked-for-op
+  #       op: delete
+  #   actions:
+  #     - delete

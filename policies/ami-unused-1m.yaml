@@ -1,0 +1,64 @@
+---
+policies:
+  - name: ami-unused-1m
+    resource: aws.ami
+    filters:
+      - and:
+        - type: unused
+          value: true
+        - type: image-age
+          days: 30
+          op: gt
+        - not:
+          - and:
+            # This is for an argumentation intended for the legacy account
+            # Per Chad Chmura; https://disneystudios.slack.com/archives/G02AWL4JZ/p1582074560066000
+            - type: value
+              key: Name
+              op: regex
+              value: "^.*alliant.*$"
+            - type: value
+              key: CreationDate
+              op: greater-than
+              value_type: date
+              value: "2019/01/01"
+        - not:  ## Added at the request of Aaron Tracy for the BI accounts
+          - and:
+            - type: value
+              key: Name
+              op: regex
+              value: "^AwsBackup_"
+            - type: image-age
+              days: 90
+              op: lt
+        - not:  ## Added at the request of Aaron Tracy for the BI accounts
+          - and:
+            - type: value
+              key: "tag:teradata:stack"
+              op: regex
+              value: "TeradataMinAdvancedIntellisphere"
+            - type: image-age
+              days: 90
+              op: lt
+        - not:  ## Added at the request of Tom Haynes for the shared-services account
+          - and:
+            - type: value
+              key: Name
+              op: regex
+              value: "^twds\\.centos\\.7\\.jenkins\\..*$"
+        - not:  ## Added at the request of Carlos Meza (out of paranoia) for the shared-services account
+          - and:
+            - type: value
+              key: Name
+              op: regex
+              value: "^.*jenkins.*$"
+            - type: image-age
+              days: 1460  # 4 years
+              op: lt
+        - not:
+          - type: value
+            key: "tag:custodian_skip"
+            op: regex
+            value: "(1|true)"
+    actions:
+      - deregister

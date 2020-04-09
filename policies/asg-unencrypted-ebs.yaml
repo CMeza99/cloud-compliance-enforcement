@@ -1,0 +1,11 @@
+---
+policies:
+  - name: asg-invalid
+    resource: aws.asg
+    filters:
+      - type: not-encrypted
+#        exclude_image: true
+#    actions:
+#      - type: resize
+#        min-size: 0
+#        desired-size: 0

@@ -1,0 +1,10 @@
+---
+policies:
+  - name: asg-ami-90d
+    resource: aws.asg
+    filters:
+      - type: image-age
+        days: 90
+        op: gt
+#    actions:
+#      - type: suspend
