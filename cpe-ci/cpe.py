@@ -136,19 +136,15 @@ class C7nRunDefaults(C7nDefaults):
 class C7nCommands:
     @staticmethod
     def exec(command: str, config: C7nDefaults = C7nDefaults(), policies: Iterable[Path] = ()):
-        c7n_cmd = getattr(c7n.commands, command)
-        cfg_gen = (
-            Config.empty(
-                **asdict(
-                    replace(
-                        config,
-                        cache=str(Path(".cache", config.profile, policy_.stem).with_suffix(".cache")),
-                        configs=[str(policy_)],
-                    )
-                )
+        def _new_cfg(policy):
+            return replace(
+                config,
+                cache=str(Path(".cache", config.profile, policy.stem).with_suffix(".cache")),
+                configs=[str(policy)],
             )
-            for policy_ in policies
-        )
+
+        c7n_cmd = getattr(c7n.commands, command)
+        cfg_gen = (Config.empty(**asdict(_new_cfg(policy_))) for policy_ in policies)
         with ThreadPoolExecutor() as executor:
             list(executor.map(c7n_cmd, cfg_gen))
 
