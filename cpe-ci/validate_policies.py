@@ -2,7 +2,7 @@
 """ Validate c7n policies """
 import logging
 import sys
-from os import PathLike
+from os import PathLike, environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Sequence, Union
@@ -12,20 +12,20 @@ import yaml
 from c7n.config import Config
 
 
-logging.basicConfig()
+logging.basicConfig(level=environ.get("CPE_LOGLEVEL", "warning").upper())
 logging.getLogger("custodian").setLevel(logging.WARNING)
 _LOGGER = logging.getLogger(__name__)
 
+POLICY_MODE_FILE = Path(__file__).parents[1].joinpath("policy-modes.yaml")
 POLICY_DIR = Path(__file__).parents[1].joinpath("policies")
-MODE_DIR = Path(__file__).parents[1].joinpath("policy.modes")
-MODE_FILE = Path(MODE_DIR, "periodic.yml")
+MODE_DIR = Path(__file__).parents[1].joinpath("modes")
 
 
 def _read_yaml(yaml_file: Union[Path, PathLike]) -> Dict[str, Sequence[Any]]:
-    return yaml.safe_load(Path(yaml_file).read_text())
+    return yaml.safe_load(Path(yaml_file).with_suffix(".yaml").read_text())
 
 
-def apply_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[str, Any]:
+def policy_with_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     Args:
@@ -41,6 +41,27 @@ def apply_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[s
     return {"policies": list(policy_list)}
 
 
+def create_compiled_files(
+    mode_file: [Union[Path, PathLike]],
+    policy_files: Sequence[Union[Path, PathLike]],
+    outdir: [Union[Path, PathLike]],
+):
+    mode_data = _read_yaml(Path(mode_file))
+    for policyfile_ in policy_files:
+        processed_policy = policy_with_mode(_read_yaml(Path(POLICY_DIR, policyfile_)), mode_data)
+        policy_file = Path(outdir, policyfile_).with_suffix(".yaml")
+        policy_file.parent.mkdir(parents=True, exist_ok=True)
+        policy_file.write_text(yaml.safe_dump(processed_policy))
+
+
+def process_policies(policy_mode_file: Union[Path, PathLike], modedir: Union[Path, PathLike], outdir: Union[Path, PathLike]):
+    policy_modes = _read_yaml(policy_mode_file)
+    _ = [
+        create_compiled_files(Path(modedir, key_), val_, outdir)
+        for key_, val_ in policy_modes.items()
+    ]
+
+
 def is_valid(policy_file: Union[Path, PathLike]) -> bool:
     """
 
@@ -53,19 +74,11 @@ def is_valid(policy_file: Union[Path, PathLike]) -> bool:
     try:
         c7n.commands.validate(Config.empty(configs={Path(policy_file).resolve()}))
     except SystemExit:
-        _LOGGER.error("Invalid policy %s", policy_file.name)
+        _LOGGER.debug("Invalid policy %s", policy_file.name)
     else:
-        _LOGGER.info("Validated policy %s", policy_file.name)
+        _LOGGER.debug("Validated policy %s", policy_file.name)
         return True
     return False
-
-
-def apply_mode_all(policy_dir: Union[Path, PathLike], outdir: Union[Path, PathLike], mode_data):
-    for policy_file_ in Path(policy_dir).rglob("*.yaml"):
-        processed_policy = apply_mode(_read_yaml(policy_file_), mode_data)
-        tmpfile = Path(outdir, policy_file_.relative_to(policy_dir))
-        tmpfile.parent.mkdir(parents=True, exist_ok=True)
-        tmpfile.write_text(yaml.safe_dump(processed_policy))
 
 
 def get_invalid(policy_dir: Union[Path, PathLike]) -> Sequence[str]:
@@ -78,9 +91,9 @@ def get_invalid(policy_dir: Union[Path, PathLike]) -> Sequence[str]:
 
 
 def main() -> None:
-    """ Main entrypoint """
+    """ Main entry point """
     with TemporaryDirectory(prefix="c7n-") as tmpdir:
-        apply_mode_all(POLICY_DIR, tmpdir, _read_yaml(MODE_FILE))
+        process_policies(POLICY_MODE_FILE, MODE_DIR, tmpdir)
         invalid_policies = get_invalid(tmpdir)
     if invalid_policies:
         sys.exit(f"INVALID POLICIES:\n{yaml.safe_dump(invalid_policies)}")
