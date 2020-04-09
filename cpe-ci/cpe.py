@@ -153,7 +153,9 @@ class C7nCommands:
 
 def _get_params():
     parser = argparse.ArgumentParser(
-        description=f"{str(__name__).capitalize()} CLI Help", allow_abbrev=False,
+        description="Cloud Policy Enforcement Script: A workflow manager wrapping Cloud Custodian.",
+        epilog="Policies are always validated, even when no c7n command is specified.",
+        allow_abbrev=False,
     )
 
     parser.add_argument(
