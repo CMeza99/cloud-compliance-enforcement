@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # pylint: disable=missing-class-docstring, missing-function-docstring
 """ Validate c7n policies """
+# TODO: namespace cache
 import argparse
 import logging
 import sys
