@@ -1,0 +1,15 @@
+%YAML 1.2
+---
+periodic-4h:
+  - asg-ami-90d
+  - ami-unused-1m
+  - asg-unencrypted-ebs
+  - ebs-snapshots-1y
+  - ec2-stopped-1y
+  - rds-cluster-snapshots-1m
+  - rds-unused-14d
+#  - asg-invalid  # Cannot be used in Lambda
+  - asg-uncapacity
+  - asg-unused-launch-config
+  - ebs-unattached
+  - rds-snapshots-1m
