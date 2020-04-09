@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # pylint: disable=missing-class-docstring, missing-function-docstring
 """ Validate c7n policies """
-# TODO: namespace cache
 import argparse
 import logging
 import sys
@@ -114,6 +113,8 @@ class C7nDefaults:  # pylint: disable=too-many-instance-attributes
 
     profile: Optional[str] = environ.get("AWS_PROFILE", None)
     regions: List[str] = field(default_factory=list)
+    cache: str = "~/.cache/cloud-custodian.cache"
+    cache_period: int = 15
 
     policy_filters: List[str] = field(default_factory=list)
     resource_types: List[str] = field(default_factory=list)
@@ -134,10 +135,18 @@ class C7nRunDefaults(C7nDefaults):
 
 class C7nCommands:
     @staticmethod
-    def exec(command: str, config: C7nDefaults = C7nDefaults(), policies: Iterable = ()):
+    def exec(command: str, config: C7nDefaults = C7nDefaults(), policies: Iterable[Path] = ()):
         c7n_cmd = getattr(c7n.commands, command)
         cfg_gen = (
-            Config.empty(**asdict(replace(config, configs=[str(policy_)])))
+            Config.empty(
+                **asdict(
+                    replace(
+                        config,
+                        cache=str(Path(".cache", config.profile, policy_.stem).with_suffix(".cache")),
+                        configs=[str(policy_)],
+                    )
+                )
+            )
             for policy_ in policies
         )
         with ThreadPoolExecutor() as executor:
