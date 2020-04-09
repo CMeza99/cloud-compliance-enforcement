@@ -15,8 +15,8 @@ policies:
             key: "tag:custodian_skip"
             op: regex
             value: "(1|true)"
-    actions:
-      - delete
+#    actions:
+#      - delete
 #       - type: put-metric
 #         key: SnapshotId
 #         namespace: "c7n: EBS Old Snapshots"

@@ -30,6 +30,6 @@ policies:
             key: "tag:custodian_skip"
             op: regex
             value: "(1|true)"
-    actions:
-      - type: terminate
-        force: true  ## Otherwise an exception thrown when attempting to remove when disableApiTermination is true
+#    actions:
+#      - type: terminate
+#        force: true  ## Otherwise an exception thrown when attempting to remove when disableApiTermination is true

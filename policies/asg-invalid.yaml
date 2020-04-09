@@ -4,5 +4,5 @@ policies:
     resource: aws.asg
     filters:
       - invalid
-    actions:
-      - delete
+#    actions:
+#      - delete

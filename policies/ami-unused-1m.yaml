@@ -60,5 +60,5 @@ policies:
             key: "tag:custodian_skip"
             op: regex
             value: "(1|true)"
-    actions:
-      - deregister
+#    actions:
+#      - deregister
