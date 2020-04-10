@@ -24,9 +24,9 @@ logging.getLogger("custodian.policy").setLevel(logging.INFO)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 _LOGGER = logging.getLogger(__name__)
 
-POLICY_MODE_FILE = Path(__file__).parents[1].joinpath("policy-modes.yaml")
-POLICY_DIR = Path(__file__).parents[1].joinpath("policies")
-MODE_DIR = Path(__file__).parents[1].joinpath("modes")
+POLICY_MODE_FILE = Path("policy-modes.yaml")
+POLICY_DIR = Path("policies")
+MODE_DIR = Path("modes")
 
 
 try:
@@ -41,7 +41,6 @@ def _read_yaml(yaml_file: Union[Path, PathLike]) -> Dict[str, Iterable[Any]]:
 
 def policy_with_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-
     Args:
         policy_data: policy to have mode applied
         mode_data: mode to be appended to policy
@@ -55,32 +54,23 @@ def policy_with_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> 
     return {"policies": list(policy_list)}
 
 
-def create_compiled_files(
-    mode_file: [Union[Path, PathLike]],
-    policy_files: Iterable[Union[Path, PathLike]],
-    outdir: [Union[Path, PathLike]],
-) -> None:
-    mode_data = _read_yaml(Path(mode_file))
-    for policyfile_ in policy_files:
-        processed_policy = policy_with_mode(_read_yaml(Path(POLICY_DIR, policyfile_)), mode_data)
-        policy_file = Path(outdir, policyfile_).with_suffix(".yaml")
-        policy_file.parent.mkdir(parents=True, exist_ok=True)
-        policy_file.write_text(yaml.safe_dump(processed_policy))
-
-
-def process_policies(
-    policy_mode_file: Union[Path, PathLike],
-    modedir: Union[Path, PathLike],
-    outdir: Union[Path, PathLike],
+def gen_policy_files(
+    policy_mode_file: Union[Path, PathLike], outdir: Union[Path, PathLike],
 ):
     policy_modes = _read_yaml(policy_mode_file)
     for key_, val_ in policy_modes.items():
-        create_compiled_files(Path(modedir, key_), val_, outdir)
+        mode_data = _read_yaml(Path(MODE_DIR, key_))
+        for policyfile_ in val_:
+            processed_policy = policy_with_mode(
+                _read_yaml(Path(POLICY_DIR, policyfile_)), mode_data
+            )
+            policy_file = Path(outdir, policyfile_).with_suffix(".yaml")
+            policy_file.parent.mkdir(parents=True, exist_ok=True)
+            policy_file.write_text(yaml.safe_dump(processed_policy))
 
 
 def is_valid(policy_file: Union[Path, PathLike]) -> bool:
     """
-
     Args:
         policy_file: file to be validated
 
@@ -139,8 +129,14 @@ class C7nCommands:
         def _new_cfg(policy):
             return replace(
                 config,
-                cache=str(Path(".cache", config.profile, policy.stem).with_suffix(".cache")),
+                # TODO: Use account_id rather than profile name
+                cache=str(
+                    Path(
+                        ".cache", config.profile if config.profile else "default", policy.stem
+                    ).with_suffix(".cache")
+                ),
                 configs=[str(policy)],
+                output_dir=str(Path("output", config.profile if config.profile else "default")),
             )
 
         c7n_cmd = getattr(c7n.commands, command)
@@ -185,7 +181,7 @@ def main() -> None:
     cli_params = _get_params()
     c7n_cmd = cli_params.c7n_cmd
     with TemporaryDirectory(prefix="c7n-") as tmpdir:
-        process_policies(POLICY_MODE_FILE, MODE_DIR, tmpdir)
+        gen_policy_files(POLICY_MODE_FILE, tmpdir)
         invalid_policies = get_invalid(tmpdir)
         if invalid_policies:
             sys.exit(f"INVALID POLICIES:\n{yaml.safe_dump(invalid_policies)}")
