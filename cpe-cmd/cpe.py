@@ -35,65 +35,92 @@ except pkg_resources.DistributionNotFound:
     __version__ = None
 
 
+def _get_params():
+    parser = argparse.ArgumentParser(
+        description="Cloud Policy Enforcement Script: A workflow manager wrapping Cloud Custodian.",
+        epilog="Policies are always validated, even when no c7n command is specified.",
+        allow_abbrev=False,
+    )
+
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"%(prog)s {__version__}",
+    )
+
+    parser.add_argument(
+        "-x",
+        "--c7n-cmd",
+        choices=("run",),
+        required=False,
+        default=None,
+        help="Cloud Custodian command to execute",
+    )
+
+    return parser.parse_args()
+
+
 def _read_yaml(yaml_file: Union[Path, PathLike]) -> Dict[str, Iterable[Any]]:
     return yaml.safe_load(Path(yaml_file).with_suffix(".yaml").read_text())
 
 
-def policy_with_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Args:
-        policy_data: policy to have mode applied
-        mode_data: mode to be appended to policy
+class PolicyProcessor:
+    @staticmethod
+    def apply_mode(policy_data: Dict[str, Any], mode_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Args:
+            policy_data: policy to have mode applied
+            mode_data: mode to be appended to policy
 
-    Returns:
-        policy with mode appended
-    """
-    if not policy_data:
-        return dict()
-    policy_list = map(lambda policy_: dict(policy_, mode=mode_data), policy_data.get("policies"))
-    return {"policies": list(policy_list)}
-
-
-def gen_policy_files(
-    policy_mode_file: Union[Path, PathLike], outdir: Union[Path, PathLike],
-):
-    policy_modes = _read_yaml(policy_mode_file)
-    for key_, val_ in policy_modes.items():
-        mode_data = _read_yaml(Path(MODE_DIR, key_))
-        for policyfile_ in val_:
-            processed_policy = policy_with_mode(
-                _read_yaml(Path(POLICY_DIR, policyfile_)), mode_data
-            )
-            policy_file = Path(outdir, policyfile_).with_suffix(".yaml")
-            policy_file.parent.mkdir(parents=True, exist_ok=True)
-            policy_file.write_text(yaml.safe_dump(processed_policy))
-
-
-def is_valid(policy_file: Union[Path, PathLike]) -> bool:
-    """
-    Args:
-        policy_file: file to be validated
-
-    Returns:
-        True if policy is valid
-    """
-    try:
-        c7n.commands.validate(Config.empty(configs={Path(policy_file).resolve()}))
-    except SystemExit:
-        _LOGGER.debug("Invalid policy %s", policy_file.name)
-    else:
-        _LOGGER.debug("Validated policy %s", policy_file.name)
-        return True
-    return False
-
-
-def get_invalid(policy_dir: Union[Path, PathLike]) -> Iterable[str]:
-    return [
-        str(pfile_.relative_to(policy_dir))
-        for pfile_ in filter(
-            lambda ppath_: not (is_valid(ppath_)), Path(policy_dir).rglob("*.yaml")
+        Returns:
+            policy with mode appended
+        """
+        if not policy_data:
+            return dict()
+        policy_list = map(
+            lambda policy_: dict(policy_, mode=mode_data), policy_data.get("policies")
         )
-    ]
+        return {"policies": list(policy_list)}
+
+    @classmethod
+    def write_all(
+        cls, policy_mode_file: Union[Path, PathLike], outdir: Union[Path, PathLike],
+    ):
+        policy_modes = _read_yaml(policy_mode_file)
+        for key_, val_ in policy_modes.items():
+            mode_data = _read_yaml(Path(MODE_DIR, key_))
+            for policyfile_ in val_:
+                processed_policy = cls.apply_mode(
+                    _read_yaml(Path(POLICY_DIR, policyfile_)), mode_data
+                )
+                policy_file = Path(outdir, policyfile_).with_suffix(".yaml")
+                policy_file.parent.mkdir(parents=True, exist_ok=True)
+                policy_file.write_text(yaml.safe_dump(processed_policy))
+
+    @staticmethod
+    def is_valid(policy_file: Union[Path, PathLike]) -> bool:
+        """
+        Args:
+            policy_file: file to be validated
+
+        Returns:
+            True if policy is valid
+        """
+        try:
+            c7n.commands.validate(Config.empty(configs={Path(policy_file).resolve()}))
+        except SystemExit:
+            _LOGGER.debug("Invalid policy %s", policy_file.name)
+        else:
+            _LOGGER.debug("Validated policy %s", policy_file.name)
+            return True
+        return False
+
+    @classmethod
+    def get_invalid_all(cls, policy_dir: Union[Path, PathLike]) -> Iterable[str]:
+        return [
+            str(pfile_.relative_to(policy_dir))
+            for pfile_ in filter(
+                lambda ppath_: not (cls.is_valid(ppath_)), Path(policy_dir).rglob("*.yaml")
+            )
+        ]
 
 
 @dataclass(eq=False)
@@ -127,16 +154,13 @@ class C7nCommands:
     @staticmethod
     def exec(command: str, config: C7nDefaults = C7nDefaults(), policies: Iterable[Path] = ()):
         def _new_cfg(policy):
+            # TODO: Use account_id rather than profile name
+            profile = config.profile if config.profile else "default"
             return replace(
                 config,
-                # TODO: Use account_id rather than profile name
-                cache=str(
-                    Path(
-                        ".cache", config.profile if config.profile else "default", policy.stem
-                    ).with_suffix(".cache")
-                ),
+                cache=str(Path(".cache", profile, policy.stem).with_suffix(".cache")),
                 configs=[str(policy)],
-                output_dir=str(Path("output", config.profile if config.profile else "default")),
+                output_dir=str(Path("output", profile)),
             )
 
         c7n_cmd = getattr(c7n.commands, command)
@@ -153,36 +177,13 @@ class C7nCommands:
         cls.exec("run", config, policies)
 
 
-def _get_params():
-    parser = argparse.ArgumentParser(
-        description="Cloud Policy Enforcement Script: A workflow manager wrapping Cloud Custodian.",
-        epilog="Policies are always validated, even when no c7n command is specified.",
-        allow_abbrev=False,
-    )
-
-    parser.add_argument(
-        "-v", "--version", action="version", version=f"%(prog)s {__version__}",
-    )
-
-    parser.add_argument(
-        "-x",
-        "--c7n-cmd",
-        choices=("run",),
-        required=False,
-        default=None,
-        help="Cloud Custodian command to execute",
-    )
-
-    return parser.parse_args()
-
-
 def main() -> None:
     """ Main entry point """
     cli_params = _get_params()
     c7n_cmd = cli_params.c7n_cmd
     with TemporaryDirectory(prefix="c7n-") as tmpdir:
-        gen_policy_files(POLICY_MODE_FILE, tmpdir)
-        invalid_policies = get_invalid(tmpdir)
+        PolicyProcessor.write_all(POLICY_MODE_FILE, tmpdir)
+        invalid_policies = PolicyProcessor.get_invalid_all(tmpdir)
         if invalid_policies:
             sys.exit(f"INVALID POLICIES:\n{yaml.safe_dump(invalid_policies)}")
         if c7n_cmd:
