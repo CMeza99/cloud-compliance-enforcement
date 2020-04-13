@@ -1,6 +1,12 @@
 Cloud Policy Enforcement Script
 ===============================
 
+Requirements
+--------------
+
+* Python 3.8
+
+
 Features
 --------
 
