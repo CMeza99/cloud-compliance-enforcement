@@ -1,5 +1,5 @@
-Cloud Policy Enforcement Script
-===============================
+Cloud Policy Enforcement Command
+================================
 
 Requirements
 --------------
