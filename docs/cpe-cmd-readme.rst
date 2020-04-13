@@ -1,0 +1,1 @@
+.. include:: ../cpe-cmd/README.rst
