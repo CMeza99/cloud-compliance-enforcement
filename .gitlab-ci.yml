@@ -9,14 +9,40 @@ variables:
     TOXENV: ${CI_JOB_NAME}
     PIP_DISABLE_PIP_VERSION_CHECK: 1
 
-.job_template: &job_base
+.job_template: &job_template
     script:
         - tox
+    artifacts:
+      paths:
+        - .tox/
+      expire_in: 1 week
 
 validate:
   stage: test
   extends: .job_template
 
+docs:
+  stage: test
+  extends: .job_template
+  artifacts:
+    paths:
+      - build/docs
+
 #run:
 #    stage: deploy
 #    extends: .job_template
+
+pages:
+  stage: deploy
+  extends: .job_template
+  needs:
+    - job: docs
+      artifacts: true
+  after_script:
+    - printf "Published to ${CI_PAGES_URL}\n"
+  artifacts:
+    paths:
+      - public
+  only:
+    refs:
+      - master
