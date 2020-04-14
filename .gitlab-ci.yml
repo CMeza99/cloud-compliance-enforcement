@@ -32,8 +32,10 @@ docs:
       - build/docs
 
 #run:
-#    stage: deploy
-#    extends: .job_template
+#  stage: deploy
+#  extends: .job_template
+#  needs:
+#    - job: validate
 
 pages:
   stage: deploy
