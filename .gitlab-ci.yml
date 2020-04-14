@@ -28,9 +28,8 @@ docs:
   extends: .job_template
   artifacts:
     paths:
-      - build/docs
       - .pip-cache/
-      - .tox/
+      - build/docs
 
 #run:
 #    stage: deploy
