@@ -12,7 +12,7 @@ graph LR
 		managment(Managment)
 	end
 
-	git --> compile
+	git --> cpe_1
 	subgraph UI
 		subgraph Policy-as-Code
 			yaml(fa:fa-file YAML) -.-> git(fa:fa-git Git)
@@ -31,7 +31,10 @@ graph LR
 	c7n --> azure
 	subgraph CI/CD
 		subgraph Pipeline
-			compile(Policy Compiler) -.-> c7n(Cloud Custodian)
+		    cpe_run -.-> c7n(Cloud Custodian)
+			subgraph CPE Command
+			    cpe_1(Policy Processor) -.-> cpe_run(Run c7n)
+			end
 		end
 	end
 
