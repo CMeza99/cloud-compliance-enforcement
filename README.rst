@@ -1,14 +1,15 @@
 Cloud Policy Enforcement
 ========================
 
-Manage and enforce cloud policies with `Cloud Custodian`_.
+Manage and enforce cloud policies with `Cloud Custodian <https://cloudcustodian.io/>`_.
+Documentation is available on `Gitlab Pages <http://digitalr00ts.pages.gitlab.disney.com/cloud-policy-enforcement>`_.
 
 Requirements
 ------------
 
 * Python 3.8
-* Tox >= 3.0
-* Pipenv (for dev environment)
+* `Tox <https://tox.readthedocs.io/>`_ >= 3.0
+* `Pipenv <https://github.com/pypa/pipenv>`_ (for dev environment)
 
 
 Basic Usage

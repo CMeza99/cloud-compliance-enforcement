@@ -1,7 +1,7 @@
 Cloud Policy Enforcement Command
 ================================
 
-A workflow manager and policy processor for :c7n:`Cloud Custodian<>`.
+A workflow manager and policy processor for `Cloud Custodian <https://cloudcustodian.io/>`_.
 
 
 Features
