@@ -1,6 +1,8 @@
 Cloud Policy Enforcement
 ========================
 
+Manage and enforce cloud policies with `Cloud Custodian`_.
+
 Requirements
 ------------
 

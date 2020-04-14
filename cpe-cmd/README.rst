@@ -1,10 +1,7 @@
 Cloud Policy Enforcement Command
 ================================
 
-Requirements
---------------
-
-* Python 3.8
+A workflow manager and policy processor for :c7n:`Cloud Custodian<>`.
 
 
 Features
@@ -13,6 +10,12 @@ Features
 * Compiles policies, so policy files can be DRY
 * Validates compiled policies
 * Executes Cloud Custodian with sane defaults and in parallel
+
+
+Requirements
+--------------
+
+* Python 3.8
 
 
 Usage

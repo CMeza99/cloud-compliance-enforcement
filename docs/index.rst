@@ -1,7 +1,8 @@
-Cloud Policy Enforcement Documentation
+|project| Documentation
 ======================================
 
-.. autoclasstree:: cpe
+Table of Contents
+-----------------
 
 .. toctree::
    :maxdepth: 2

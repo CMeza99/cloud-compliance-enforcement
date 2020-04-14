@@ -1,8 +1,9 @@
 CPE Command API
 ===============
 
-cpy.py
+cpe.py
 ------
 
+.. autoclasstree:: cpe
 .. automodule:: cpe
 
