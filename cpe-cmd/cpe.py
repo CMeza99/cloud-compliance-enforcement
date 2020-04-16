@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 # pylint: disable=missing-class-docstring, missing-function-docstring
-""" Validate c7n policies """
+"""
+Process and run c7n policies
+
+Environment Variables:
+CPE_LOGLEVEL=warning
+CPE_DRYRUN=1  # Only for 'run'
+
+Constants:
+POLICY_MODE_FILE = policy-modes.yaml
+POLICY_DIR = policies
+MODE_DIR = modes
+"""
 import argparse
+import io
 import logging
 import sys
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -35,7 +47,7 @@ except pkg_resources.DistributionNotFound:
     __version__ = None
 
 
-def _get_params():
+def _parser_params(params: Optional[Iterable[str]] = None):
     parser = argparse.ArgumentParser(
         description="Cloud Policy Enforcement Script: A workflow manager wrapping Cloud Custodian.",
         epilog="Policies are always validated, even when no c7n command is specified.",
@@ -49,13 +61,13 @@ def _get_params():
     parser.add_argument(
         "-x",
         "--c7n-cmd",
-        choices=("run",),
+        choices=("run", "report"),
         required=False,
         default=None,
         help="Cloud Custodian command to execute",
     )
 
-    return parser.parse_args()
+    return parser.parse_args(params)
 
 
 def _read_yaml(yaml_file: Union[Path, PathLike]) -> Dict[str, Iterable[Any]]:
@@ -130,14 +142,19 @@ class C7nDefaults:  # pylint: disable=too-many-instance-attributes
 
     profile: Optional[str] = environ.get("AWS_PROFILE", None)
     regions: List[str] = field(default_factory=list)
-    cache: str = "~/.cache/cloud-custodian.cache"
-    cache_period: int = 15
+    cache: Optional[str] = None
+    cache_period: int = 0
 
     policy_filters: List[str] = field(default_factory=list)
     resource_types: List[str] = field(default_factory=list)
 
     debug: bool = False
 
+    # AWS Provider Options
+    profile: Optional[str] = None
+    region: str = "us-east-1"
+
+    # c7n internal use
     vars: Optional[List] = None
 
     def __post_init__(self):
@@ -148,6 +165,22 @@ class C7nDefaults:  # pylint: disable=too-many-instance-attributes
 class C7nRunDefaults(C7nDefaults):
     skip_validation: bool = True
     dryrun: bool = bool(int(environ.get("CPE_DRYRUN", 1)))
+
+
+@dataclass(eq=False)
+class C7nReportDefaults(C7nDefaults):
+    """
+    CURRENTLY NOT FUNCTIONAL!
+    TODO: check for exec-option and override output_dir
+    """
+    days: int = 1
+    field: Optional[List] = field(default_factory=list)
+    no_default_fields: bool = False
+    format: str = "csv"
+    raw: Optional[io.TextIOWrapper] = None
+
+    def __post_init__(self):
+        self.output_dir = "s3://c7n-test/v2020.04.02"
 
 
 class C7nCommands:
@@ -176,19 +209,33 @@ class C7nCommands:
     ):
         cls.exec("run", config, policies)
 
+    @classmethod
+    def report(
+            cls,
+            config: C7nDefaults = C7nReportDefaults(),
+            policies: Iterable[Union[Path, PathLike]] = (),
+    ):
+        """
+        CURRENTLY NOT FUNCTIONAL!
+        TODO: check for exec-option and override output_dir
+        """
+        cls.exec("report", config, policies)
 
-def main() -> None:
-    """ Main entry point """
-    cli_params = _get_params()
-    c7n_cmd = cli_params.c7n_cmd
+
+def run(c7n_cmd: Optional[str] = None) -> Optional[str]:
     with TemporaryDirectory(prefix="c7n-") as tmpdir:
         PolicyProcessor.write_all(POLICY_MODE_FILE, tmpdir)
         invalid_policies = PolicyProcessor.get_invalid_all(tmpdir)
         if invalid_policies:
-            sys.exit(f"INVALID POLICIES:\n{yaml.safe_dump(invalid_policies)}")
+            return f"INVALID POLICIES:\n{yaml.safe_dump(invalid_policies)}"
         if c7n_cmd:
             getattr(C7nCommands, c7n_cmd)(policies=Path(tmpdir).rglob("*.yaml"))
-    sys.exit()
+
+
+def main() -> None:
+    """ Main entry point """
+    cli_params = _parser_params()
+    sys.exit(run(cli_params.c7n_cmd))
 
 
 if __name__ == "__main__":
