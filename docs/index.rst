@@ -9,6 +9,7 @@ Table of Contents
    :caption: CPE:
 
    Overview <readme>
+   Product Overview <product-overview>
    architecture
 
 .. toctree::
