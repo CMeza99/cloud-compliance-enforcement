@@ -49,3 +49,20 @@ Development Environment
 .. code-block:: shell
 
   pipenv install --skip-lock --dev
+
+
+Project Structure
+-----------------
+
+::
+
+    .
+    ├── cpe-cmd/ :: CPE Command
+    ├── docs/ :: Documentation
+    ├── modes/ :: Mode YAMLS to merge w/ policies
+    ├── policies/ :: Policies (Can run locally w/ c7n)
+    ├── Pipfile :: Development Environment
+    ├── README.rst
+    ├── package.json :: NPM Mermaid-CLI
+    ├── policy-modes.yaml :: Couple modes to policies
+    └── tox.ini :: Tox automation
