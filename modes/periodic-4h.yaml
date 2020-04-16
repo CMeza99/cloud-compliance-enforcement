@@ -1,0 +1,13 @@
+%YAML 1.2
+---
+type: periodic
+schedule: "rate(4 hours)"
+role: "arn:aws:iam::{{ ACCOUNT_ID }}:role/ce-c7n-lambda"
+memory: 128
+execution-options:
+  log_group: "aws://ce/c7n/?region=us-east-1"
+  metrics: "aws://?region=us-east-1"
+  output_dir: "s3://ce-c7n/v1"
+  dryrun: true
+tags:
+  name: &NAME Compliance Enforement
